@@ -188,10 +188,17 @@
       font-weight:500;
       text-align:center;
       text-transform:uppercase;
-      white-space:nowrap;
       max-width:100%;
       overflow:hidden;
-      text-overflow:ellipsis;
+      /* Permitir hasta 2 líneas: si el color es largo ("NEGRO - DORADO",
+         "AZUL CUERO OSCURO"...) hace wrap en lugar de cortarse con "...".
+         El line-clamp deja 2 líneas máx. y recorta con "..." solo si pasa. */
+      display:-webkit-box;
+      -webkit-line-clamp:2;
+      -webkit-box-orient:vertical;
+      line-height:1.15;
+      word-break:break-word;
+      padding:0 2px;
     }
 
     /* 1 color: una sola imagen grande y perfectamente centrada. */
@@ -239,7 +246,11 @@
       justify-content:center;
     }
     .products.count-3 .variant-card { width:300px; height:282px; }
-    .products.count-3 .variant-card img { width:275px; height:275px; }
+    /* Imagen un poco más chica (245px en vez de 275px) para dejarle ~36px
+       al label y que el nombre del color se vea completo en hasta 2 líneas.
+       Antes solo había 7px libres y el texto se cortaba verticalmente. */
+    .products.count-3 .variant-card img { width:245px; height:245px; }
+    .products.count-3 .variant-label { font-size:14px; }
     .products.count-3 .variant-card:nth-child(3) { grid-column:1 / span 2; justify-self:center; }
 
     /* 4 colores: cuadrícula 2 × 2 equilibrada. */
@@ -252,7 +263,9 @@
       justify-content:center;
     }
     .products.count-4 .variant-card { width:275px; height:282px; }
-    .products.count-4 .variant-card img { width:265px; height:265px; }
+    /* Imagen ajustada de 265px a 250px para liberar ~32px al label. */
+    .products.count-4 .variant-card img { width:250px; height:250px; }
+    .products.count-4 .variant-label { font-size:14px; }
 
     /* 5 colores: 3 arriba + 2 abajo, ambos de la segunda fila centrados. */
     .products.count-5 {
@@ -346,6 +359,12 @@
     .poster-pager .pager-hint{
       font-size:11px;color:#888;letter-spacing:.5px;margin-left:4px;
     }
+
+    /* Cuando el poster está en modo "exporting" (generando PDF) ocultamos
+       el paginador para que no aparezca dentro de las páginas del PDF.
+       Es solo un flag temporal: la clase se agrega en generarPDF() y se
+       quita al terminar, sin afectar el comportamiento normal del catálogo. */
+    #poster-canvas.exporting .poster-pager{ display:none !important; }
 
     /* RIGHT PANEL */
     .info-panel {
@@ -1314,6 +1333,11 @@
       // Antes se llamaba en cada iteración (8 veces) y era lento.
       if(document.fonts && document.fonts.ready) await document.fonts.ready;
 
+      // Flag para que el paginador NO salga en el PDF. Se activa antes del
+      // loop y se desactiva en el finally, así el catálogo vuelve a la
+      // normalidad incluso si algo falla a mitad de la generación.
+      poster.classList.add('exporting');
+
       try{
         for(let i=0;i<exportar.length;i++){
           // IMPORTANTE: gruposFiltrados SIEMPRE se setea como [página_actual]
@@ -1404,6 +1428,7 @@
       }finally{
         // Siempre dejamos la interfaz exactamente como estaba antes
         // de empezar la generación del PDF.
+        poster.classList.remove('exporting');
         wrap.style.transform='';
         poster.style.transform='';
         gruposFiltrados=origGruposFiltrados;
