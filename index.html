@@ -1,1 +1,1576 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <title>Catálogo CURREN LATAM</title>
 
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer crossorigin="anonymous"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js" defer crossorigin="anonymous"></script>
+
+  <style>
+    :root {
+      --red: #c90000;
+      --red2: #a90000;
+      --white: #f6f6f6;
+      --muted: #d7d7d7;
+      --gold: #d6ad45;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin:0; width:100%; height:100%; }
+    body {
+      font-family:'Montserrat',Arial,sans-serif;
+      background:#070707;
+      color:#fff;
+      display:block;
+      overflow:hidden;
+    }
+
+    /* EDITOR */
+    aside {
+      width:0;
+      flex:0 0 285px;
+      background:#111;
+      border-right:1px solid #2b2b2b;
+      padding:24px;
+      display:flex;
+      flex-direction:column;
+      gap:14px;
+      z-index:20;
+    }
+    aside h2 { margin:0 0 8px; font-size:18px; letter-spacing:.8px; color:#fff; }
+    aside h2 i { color:var(--red); margin-right:8px; }
+    .editor-help { color:#888; font-size:12px; line-height:1.55; margin-bottom:8px; }
+    button {
+      border:1px solid #3c3c3c;
+      background:#1e1e1e;
+      color:#fff;
+      padding:13px 12px;
+      border-radius:6px;
+      cursor:pointer;
+      font:700 12px 'Montserrat',sans-serif;
+      text-transform:uppercase;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      gap:9px;
+    }
+    button:hover { border-color:#777; background:#282828; }
+    button.primary { background:var(--red); border-color:var(--red); }
+    button.primary:hover { background:#e00000; }
+    .counter { margin-top:12px; text-align:center; color:#aaa; font-size:13px; }
+    .nav { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+    .nav button { width:auto; }
+    main {
+      width:100vw;
+      height:100vh;
+      position:relative;
+      overflow:hidden;
+      background:#050505;
+    }
+    main.__old { flex:1; }
+    /* El wrapper se posiciona absolutamente debajo del nav. Así el marginTop
+       y transformOrigin top center funcionan sin que flexbox interfiera. */
+    #scale-wrapper {
+      position:absolute;
+      left:50%;
+      top:0;
+      transform-origin:top center;
+      padding:0;
+    }
+
+    /* ================= POSTER 16:9 ================= */
+    #poster-canvas {
+      width:1434px;
+      height:807px;
+      position:relative;
+      overflow:hidden;
+      color:#fff;
+      background:
+        radial-gradient(ellipse at 48% 42%, rgba(110,110,110,.20) 0%, rgba(55,55,55,.12) 34%, rgba(0,0,0,0) 63%),
+        radial-gradient(ellipse at 14% 95%, rgba(90,90,90,.18), transparent 35%),
+        repeating-linear-gradient(112deg, rgba(255,255,255,.015) 0 2px, rgba(0,0,0,.015) 2px 5px),
+        linear-gradient(145deg,#242424 0%,#343434 28%,#1e1e1e 58%,#111 100%);
+    }
+    #poster-canvas::after {
+      content:'';
+      position:absolute;
+      inset:0;
+      pointer-events:none;
+      background:radial-gradient(ellipse at center, transparent 48%, rgba(0,0,0,.30) 100%);
+      z-index:1;
+    }
+
+    .asset-logo{position:absolute;z-index:5;object-fit:contain;display:block;}
+    .combo-gold-image{left:40px;top:45px;width:205px;height:75px;}
+    .curren-latam-image{left:67px;bottom:42px;width:150px;height:48px;}
+    #poster-canvas.has-custom-bg{background-size:cover;background-position:center;background-repeat:no-repeat;}
+
+    .gold-logo {
+      position:absolute;
+      left:40px;
+      top:48px;
+      width:205px;
+      z-index:4;
+      text-align:center;
+      color:#e8b84c;
+      text-shadow:0 2px 2px #3b2100, 0 0 9px rgba(236,184,68,.18);
+    }
+    .gold-logo .line { height:1px; background:#b98a28; opacity:.9; width:43px; position:absolute; top:12px; }
+    .gold-logo .line.left { left:0; }
+    .gold-logo .line.right { right:0; }
+    .gold-logo .combo { font-size:20px; letter-spacing:2px; line-height:20px; font-weight:500; }
+    .gold-logo .gold { font-family:Georgia,serif; font-size:49px; line-height:42px; font-weight:900; letter-spacing:-3px; }
+
+    .ref-title {
+      position:absolute;
+      left:296px;
+      top:39px;
+      width:441px;
+      height:69px;
+      border-radius:10px;
+      background:linear-gradient(#ca0000,#b40000);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:28px;
+      font-weight:800;
+      z-index:4;
+    }
+
+    /* Distribución inteligente de colores: el espacio se aprovecha según
+       cuántas variantes tenga la referencia. Nunca se estiran las imágenes. */
+    .products {
+      position:absolute;
+      left:105px;
+      top:120px;
+      width:830px;
+      height:590px;
+      z-index:3;
+      display:grid;
+      justify-items:center;
+      align-items:start;
+      justify-content:center;
+      align-content:start;
+    }
+    .variant-card {
+      width:250px;
+      min-width:0;
+      height:282px;
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      background:transparent;
+      border:0;
+      box-shadow:none;
+      padding:0;
+      transform:none !important;
+    }
+    .variant-card img {
+      width:245px;
+      height:245px;
+      max-width:100%;
+      max-height:100%;
+      object-fit:contain;
+      object-position:center center;
+      display:block;
+      filter:drop-shadow(0 11px 8px rgba(0,0,0,.38));
+      opacity:1 !important;
+      mix-blend-mode:normal !important;
+    }
+    .variant-label {
+      margin-top:1px;
+      color:#e8e8e8;
+      font-size:16px;
+      font-weight:500;
+      text-align:center;
+      text-transform:uppercase;
+      white-space:nowrap;
+      max-width:100%;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    /* 1 color: una sola imagen grande y perfectamente centrada. */
+    .products.count-1 {
+      grid-template-columns:1fr;
+      grid-template-rows:1fr;
+      align-items:center;
+      align-content:center;
+    }
+    .products.count-1 .variant-card {
+      width:500px;
+      height:500px;
+    }
+    .products.count-1 .variant-card img {
+      width:460px;
+      height:460px;
+    }
+    .products.count-1 .variant-label { font-size:19px; margin-top:5px; }
+
+    /* 2 colores: ambos grandes, juntos y centrados. */
+    .products.count-2 {
+      grid-template-columns:350px 350px;
+      grid-template-rows:1fr;
+      align-items:center;
+      align-content:center;
+      column-gap:28px;
+    }
+    .products.count-2 .variant-card {
+      width:350px;
+      height:390px;
+    }
+    .products.count-2 .variant-card img {
+      width:350px;
+      height:350px;
+    }
+    .products.count-2 .variant-label { font-size:18px; margin-top:4px; }
+
+    /* 3 colores: 2 arriba + 1 abajo, este último centrado. */
+    .products.count-3 {
+      grid-template-columns:300px 300px;
+      grid-template-rows:282px 282px;
+      column-gap:35px;
+      row-gap:8px;
+      align-content:center;
+      justify-content:center;
+    }
+    .products.count-3 .variant-card { width:300px; height:282px; }
+    .products.count-3 .variant-card img { width:275px; height:275px; }
+    .products.count-3 .variant-card:nth-child(3) { grid-column:1 / span 2; justify-self:center; }
+
+    /* 4 colores: cuadrícula 2 × 2 equilibrada. */
+    .products.count-4 {
+      grid-template-columns:275px 275px;
+      grid-template-rows:282px 282px;
+      column-gap:45px;
+      row-gap:8px;
+      align-content:center;
+      justify-content:center;
+    }
+    .products.count-4 .variant-card { width:275px; height:282px; }
+    .products.count-4 .variant-card img { width:265px; height:265px; }
+
+    /* 5 colores: 3 arriba + 2 abajo, ambos de la segunda fila centrados. */
+    .products.count-5 {
+      grid-template-columns:250px 250px 250px;
+      grid-template-rows:282px 282px;
+      column-gap:15px;
+      row-gap:8px;
+      align-content:center;
+      justify-content:center;
+    }
+    .products.count-5 .variant-card { width:250px; height:282px; }
+    .products.count-5 .variant-card img { width:245px; height:245px; }
+    .products.count-5 .variant-card:nth-child(4) { grid-column:1; margin-left:132px; }
+    .products.count-5 .variant-card:nth-child(5) { grid-column:2; margin-left:132px; }
+
+
+
+    /* 6 colores: cuadrícula 3 × 2 equilibrada. */
+    .products.count-6 {
+      grid-template-columns:250px 250px 250px;
+      grid-template-rows:282px 282px;
+      column-gap:15px;
+      row-gap:8px;
+      align-content:center;
+      justify-content:center;
+    }
+    .products.count-6 .variant-card { width:250px; height:282px; }
+    .products.count-6 .variant-card img { width:235px; height:235px; }
+
+    .brand-bottom {
+      position:absolute;
+      left:67px;
+      bottom:44px;
+      z-index:5;
+      display:flex;
+      align-items:center;
+      font-family:Georgia,serif;
+      font-size:25px;
+      line-height:21px;
+    }
+    .brand-bottom .c { background:#e52b22; color:#fff; padding:0 3px; margin-right:2px; }
+    .brand-bottom .curren { letter-spacing:-1px; }
+    .brand-bottom .latam { font-size:19px; font-style:italic; margin-left:2px; }
+
+    .cta {
+      position:absolute;
+      left:256px;
+      bottom:-4px;
+      width:522px;
+      height:48px;
+      background:var(--red);
+      border-radius:10px 10px 0 0;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:22px;
+      font-weight:500;
+      z-index:4;
+    }
+
+    /* Paginador DENTRO del poster, al lado derecho del CTA.
+       Así el paginador y el CTA "¡Descubre el potencial de la relojería!"
+       siempre se ven juntos dentro del poster. */
+    .poster-pager{
+      position:absolute;
+      left:800px;            /* justo a la derecha del CTA (256+522=778, +22px gap) */
+      bottom:-4px;           /* mismo bottom que el CTA */
+      height:48px;
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:0 14px;
+      background:rgba(8,8,8,.92);
+      border:1px solid #303030;
+      border-radius:10px 10px 0 0;
+      backdrop-filter:blur(8px);
+      z-index:4;
+    }
+    .poster-pager button{
+      width:34px; height:34px; padding:0; border-radius:50%;
+      background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.12);
+      color:#fff; font-size:14px; cursor:pointer; display:flex;align-items:center;justify-content:center;
+      transition:.15s;
+    }
+    .poster-pager button:hover{background:var(--red);border-color:var(--red);transform:translateY(-1px);}
+    .poster-pager button:disabled{opacity:.3;cursor:not-allowed;transform:none;background:rgba(255,255,255,.05);}
+    .poster-pager .pager-info{
+      min-width:90px;text-align:center;font-size:14px;color:#fff;font-weight:700;
+    }
+    .poster-pager .pager-info b{color:var(--red);}
+    .poster-pager .pager-hint{
+      font-size:11px;color:#888;letter-spacing:.5px;margin-left:4px;
+    }
+
+    /* RIGHT PANEL */
+    .info-panel {
+      position:absolute;
+      right:20px;
+      top:69px;
+      width:377px;
+      height:635px;
+      border:1px solid rgba(255,255,255,.75);
+      border-radius:23px;
+      padding:24px 25px;
+      z-index:4;
+      background:rgba(22,22,22,.18);
+    }
+    .info-title { font-size:25px; font-weight:700; margin:0 0 3px; }
+    .product-description { font-size:15px; line-height:21px; color:#d8d8d8; margin:0 0 12px; min-height:0; white-space:pre-line; }
+    .product-description:empty { display:none; }
+    .features { margin:0; padding:0; list-style:none; font-size:17px; line-height:25px; color:#e1e1e1; }
+    .features li { margin:0; }
+    .features li::before { content:'-'; margin-right:5px; }
+    .price-box {
+      position:absolute;
+      left:34px;
+      right:34px;
+      top:289px;
+      height:314px;
+      border-radius:13px;
+      background:rgba(8,8,8,.88);
+      padding:27px 28px 20px;
+      text-align:center;
+    }
+    .price-label { font-size:20px; line-height:24px; font-weight:700; }
+    .price {
+      margin-top:8px;
+      height:47px;
+      border-radius:9px;
+      background:linear-gradient(#c90000,#b20000);
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      font-size:28px;
+      font-weight:400;
+    }
+    .retail-label { margin-top:27px; }
+    .social {
+      position:absolute;
+      right:77px;
+      bottom:43px;
+      z-index:5;
+      display:flex;
+      align-items:center;
+      gap:9px;
+      color:#eee;
+      font-size:24px;
+    }
+    .social .handle { font-size:23px; margin-right:2px; }
+    .social i { font-size:23px; }
+
+    .loader {
+      position:fixed; inset:0;
+      background:radial-gradient(ellipse at center, rgba(0,0,0,.92) 0%, rgba(0,0,0,.98) 100%);
+      z-index:999;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      color:#fff;
+      gap:24px;
+      backdrop-filter:blur(4px);
+    }
+    /* Logo animado del loader (imgur o fallback de texto) */
+    .loader-logo-wrap{
+      position:relative;
+      width:140px; height:140px;
+      display:flex; align-items:center; justify-content:center;
+    }
+    /* Anillo giratorio con gradiente rojo */
+    .loader-ring{
+      position:absolute; inset:0;
+      border-radius:50%;
+      background:conic-gradient(from 0deg, transparent 0deg, #c90000 90deg, #ff3a3a 180deg, transparent 270deg, transparent 360deg);
+      animation:loaderSpin 1.4s linear infinite;
+      mask:radial-gradient(circle, transparent 56%, #000 58%);
+      -webkit-mask:radial-gradient(circle, transparent 56%, #000 58%);
+    }
+    @keyframes loaderSpin { to { transform:rotate(360deg); } }
+    /* Pulsación interna del logo */
+    .loader-logo{
+      width:80px; height:auto; max-height:80px;
+      object-fit:contain;
+      animation:loaderPulse 1.6s ease-in-out infinite;
+      filter:drop-shadow(0 0 12px rgba(201,0,0,.4));
+    }
+    @keyframes loaderPulse {
+      0%, 100% { transform:scale(1); filter:drop-shadow(0 0 12px rgba(201,0,0,.4)); }
+      50%      { transform:scale(1.08); filter:drop-shadow(0 0 20px rgba(255,58,58,.65)); }
+    }
+    /* Fallback de texto cuando el logo imgur no carga */
+    .loader-logo-fallback{
+      font-family:Georgia,serif;
+      font-size:24px; font-weight:900;
+      letter-spacing:2px; line-height:1;
+      color:#fff;
+      text-shadow:0 0 14px rgba(201,0,0,.6);
+      text-align:center;
+      animation:loaderPulse 1.6s ease-in-out infinite;
+      display:none;
+    }
+    .loader-logo-fallback .sub{font-size:12px;letter-spacing:4px;font-weight:600;color:#d6ad45;display:block;margin-top:4px;}
+    /* Texto principal con efecto de aparición */
+    .loader-text-wrap{
+      display:flex; flex-direction:column; align-items:center; gap:8px;
+      animation:loaderFadeIn .4s ease;
+    }
+    @keyframes loaderFadeIn { from{opacity:0;transform:translateY(8px);} to{opacity:1;transform:translateY(0);} }
+    .loader-title{
+      font-family:'Montserrat',sans-serif;
+      font-size:18px; font-weight:800; letter-spacing:3px;
+      text-transform:uppercase;
+      color:#fff;
+      display:flex; align-items:center; gap:4px;
+    }
+    /* Puntos animados tipo "Generando..." */
+    .loader-dots{ display:inline-flex; gap:4px; margin-left:6px; }
+    .loader-dots span{
+      width:6px; height:6px; border-radius:50%; background:#c90000;
+      animation:loaderDot 1.4s ease-in-out infinite;
+    }
+    .loader-dots span:nth-child(2){ animation-delay:.2s; }
+    .loader-dots span:nth-child(3){ animation-delay:.4s; }
+    @keyframes loaderDot {
+      0%, 80%, 100% { opacity:.2; transform:scale(.8); }
+      40%          { opacity:1; transform:scale(1.4); }
+    }
+    .loader-subtitle{
+      font-family:'Montserrat',sans-serif;
+      font-size:12px; font-weight:500; letter-spacing:1px;
+      color:#888;
+      text-align:center;
+      max-width:320px;
+    }
+    .loader-progress-bar{
+      width:240px; height:4px; border-radius:99px;
+      background:rgba(255,255,255,.08);
+      overflow:hidden;
+      position:relative;
+    }
+    .loader-progress-bar::after{
+      content:'';
+      position:absolute; inset:0;
+      background:linear-gradient(90deg, transparent, #c90000, #ff3a3a, transparent);
+      transform:translateX(-100%);
+      animation:loaderProgress 1.5s ease-in-out infinite;
+    }
+    @keyframes loaderProgress {
+      0%   { transform:translateX(-100%); }
+      100% { transform:translateX(100%); }
+    }
+    @media(max-width:560px){
+      .loader-logo-wrap{ width:110px; height:110px; }
+      .loader-logo{ width:60px; max-height:60px; }
+      .loader-title{ font-size:15px; letter-spacing:2px; }
+      .loader-progress-bar{ width:180px; }
+    }
+
+
+    /* ================= CATÁLOGO INTERACTIVO ================= */
+    /* Botones de acción dentro del nav (esquina superior derecha) */
+    .nav-actions{position:absolute;right:14px;top:50%;transform:translateY(-50%);z-index:42;display:flex;gap:6px;}
+    .nav-action{
+      width:32px;height:32px;padding:0;border-radius:50%;
+      background:rgba(25,25,25,.92);border:1px solid #363636;
+      color:#cfcfcf;display:flex;align-items:center;justify-content:center;
+      font-size:13px;cursor:pointer;transition:.2s;
+    }
+    .nav-action:hover{color:#fff;border-color:#777;background:rgba(45,45,45,.95);}
+    .nav-action.refresh:hover{color:#5fd0ff;border-color:#5fd0ff;}
+    .nav-action.pdf:hover{color:#ff6464;border-color:#ff6464;}
+    .nav-action.search:hover{color:#d6ad45;border-color:#d6ad45;}
+    .nav-action.search.active{color:#d6ad45;border-color:#d6ad45;background:rgba(214,173,69,.18);}
+
+    /* Panel desplegable de búsqueda (debajo del botón lupa) */
+    .search-panel{
+      position:absolute;right:14px;top:calc(50% + 22px);
+      transform:translateY(-6px);transform-origin:top right;
+      z-index:43;
+      width:min(320px,calc(100vw - 28px));
+      background:linear-gradient(180deg,#1a1a1a,#0e0e0e);
+      border:1px solid #2c2c2c;border-radius:12px;
+      padding:12px;
+      box-shadow:0 12px 36px rgba(0,0,0,.5);
+      opacity:0;pointer-events:none;
+      transition:opacity .18s ease, transform .18s ease;
+    }
+    .search-panel.show{opacity:1;pointer-events:auto;transform:translateY(0);}
+    .search-input-wrap{position:relative;}
+    .search-input-wrap .fa-magnifying-glass{
+      position:absolute;left:11px;top:50%;transform:translateY(-50%);
+      color:#666;font-size:12px;pointer-events:none;
+    }
+    .search-input{
+      width:100%;box-sizing:border-box;
+      padding:9px 10px 9px 30px;
+      border-radius:8px;border:1px solid #333;
+      background:#0a0a0a;color:#fff;font-size:13px;
+      font-family:'Montserrat',sans-serif;
+      outline:none;transition:.15s;
+    }
+    .search-input:focus{border-color:#d6ad45;background:#111;}
+    .search-input::placeholder{color:#555;}
+    .search-results{
+      margin-top:8px;max-height:260px;overflow-y:auto;
+      display:flex;flex-direction:column;gap:4px;
+      scrollbar-width:thin;scrollbar-color:#333 #0a0a0a;
+    }
+    .search-results::-webkit-scrollbar{width:6px;}
+    .search-results::-webkit-scrollbar-track{background:#0a0a0a;border-radius:3px;}
+    .search-results::-webkit-scrollbar-thumb{background:#333;border-radius:3px;}
+    .search-result{
+      padding:8px 10px;border-radius:8px;background:#161616;border:1px solid #242424;
+      cursor:pointer;transition:.15s;
+    }
+    .search-result:hover{background:#1f1f1f;border-color:#444;}
+    .search-result .sr-ref{font-size:11px;color:#888;font-weight:700;letter-spacing:.5px;}
+    .search-result .sr-title{font-size:12px;color:#fff;font-weight:600;margin-top:2px;line-height:1.3;}
+    .search-result .sr-meta{font-size:10px;color:#666;margin-top:3px;}
+    .search-result .sr-meta .badge{
+      display:inline-block;padding:1px 6px;border-radius:4px;
+      background:#262626;color:#aaa;font-size:9px;margin-right:4px;
+    }
+    .search-result .sr-meta .badge.cat{background:#3a2c0e;color:#d6ad45;}
+    .search-empty{padding:14px;text-align:center;color:#666;font-size:12px;}
+
+    /* Modal de diálogo para elegir qué descargar (PDF) */
+    .modal-overlay{
+      position:fixed;inset:0;z-index:200;
+      background:rgba(0,0,0,.78);backdrop-filter:blur(6px);
+      display:flex;align-items:center;justify-content:center;
+      opacity:0;pointer-events:none;transition:opacity .2s ease;
+    }
+    .modal-overlay.show{opacity:1;pointer-events:auto;}
+    .modal-card{
+      width:min(440px,92vw);
+      background:linear-gradient(180deg,#1a1a1a,#0e0e0e);
+      border:1px solid #2c2c2c;border-radius:16px;
+      padding:24px 22px 20px;color:#fff;
+      box-shadow:0 20px 60px rgba(0,0,0,.6);
+      transform:translateY(10px);transition:transform .2s ease;
+    }
+    .modal-overlay.show .modal-card{transform:translateY(0);}
+    .modal-title{font-size:17px;font-weight:800;letter-spacing:.5px;margin:0 0 4px;}
+    .modal-subtitle{font-size:12px;color:#999;margin:0 0 16px;line-height:1.5;}
+    .modal-options{display:flex;flex-direction:column;gap:10px;margin-bottom:14px;}
+    .modal-option{
+      display:flex;align-items:flex-start;gap:12px;
+      padding:12px 14px;border-radius:12px;
+      background:#181818;border:1px solid #2c2c2c;
+      cursor:pointer;transition:.18s;
+    }
+    .modal-option:hover{background:#222;border-color:#444;}
+    .modal-option.selected{background:rgba(201,0,0,.15);border-color:#c90000;}
+    .modal-option input{margin-top:2px;accent-color:#c90000;cursor:pointer;}
+    .modal-option .opt-text{flex:1;}
+    .modal-option .opt-title{font-size:13px;font-weight:700;color:#fff;display:block;margin-bottom:2px;}
+    .modal-option .opt-desc{font-size:11px;color:#999;line-height:1.4;}
+    /* Selector de filtros (aparece si elige 'por filtros') */
+    .modal-filters{
+      max-height:0;overflow:hidden;transition:max-height .25s ease, opacity .2s ease;
+      opacity:0;
+    }
+    .modal-filters.show{max-height:280px;opacity:1;margin-bottom:14px;}
+    .modal-filters .filter-label{font-size:10px;letter-spacing:1.5px;font-weight:700;color:#888;text-transform:uppercase;margin:8px 0 6px;display:block;}
+    .modal-chips{display:flex;flex-wrap:wrap;gap:6px;}
+    .modal-chip{
+      padding:6px 11px;border-radius:999px;background:#1a1a1a;border:1px solid #333;
+      color:#cfcfcf;font-size:11px;cursor:pointer;transition:.15s;
+    }
+    .modal-chip:hover{border-color:#666;background:#222;}
+    .modal-chip.selected{background:linear-gradient(135deg,#d60000,#8f0000);border-color:#ef3a3a;color:#fff;}
+    .modal-chip.cat.selected{background:linear-gradient(135deg,#d6ad45,#a98423);border-color:#e8c56d;color:#111;}
+    .modal-buttons{display:flex;gap:8px;justify-content:flex-end;margin-top:4px;}
+    .modal-btn{
+      padding:9px 16px;border-radius:9px;border:1px solid #3c3c3c;background:#1e1e1e;color:#fff;
+      font-size:12px;font-weight:600;cursor:pointer;transition:.15s;font-family:'Montserrat',sans-serif;
+    }
+    .modal-btn:hover{background:#282828;border-color:#555;}
+    .modal-btn.primary{background:linear-gradient(135deg,#d60000,#8f0000);border-color:#c90000;}
+    .modal-btn.primary:hover{background:linear-gradient(135deg,#e00000,#a00000);}
+    .modal-btn:disabled{opacity:.4;cursor:not-allowed;}
+
+    /* ================= NAV DEL CATÁLOGO (FIJO y COMPACTO) ================= */
+    #catalog-nav{
+      position:absolute;left:0;right:0;top:0;z-index:40;
+      height:56px;            /* nav más bajo: botones casi pegados a los bordes */
+      padding:0 90px;
+      background:linear-gradient(180deg,rgba(5,5,5,.98),rgba(5,5,5,.92) 80%,rgba(5,5,5,0));
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      border-bottom:1px solid rgba(255,255,255,.05);
+      box-sizing:border-box;
+      overflow:visible; /* las categorías pueden salir del nav como overlay */
+    }
+    /* Logo en la esquina superior izquierda (más pequeño) */
+    .nav-logo{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      height:36px;
+      width:auto;
+      max-width:120px;
+      object-fit:contain;
+      z-index:42;
+      filter:drop-shadow(0 2px 4px rgba(0,0,0,.55));
+      border-radius:4px;
+    }
+    /* Fallback de texto si el logo no carga (mismo contenedor) */
+    .nav-logo-fallback{
+      position:absolute;
+      left:14px;
+      top:50%;
+      transform:translateY(-50%);
+      z-index:42;
+      padding:4px 10px;
+      border-radius:6px;
+      background:linear-gradient(135deg,#c90000,#8f0000);
+      color:#fff;
+      font-family:Georgia,serif;
+      font-size:13px;
+      font-weight:900;
+      letter-spacing:1px;
+      line-height:1.1;
+      box-shadow:0 4px 10px rgba(201,0,0,.35);
+      display:none;
+      text-align:center;
+    }
+    .nav-logo-fallback .sub{font-size:8px;letter-spacing:2px;font-weight:600;opacity:.85}
+    .filter-row{display:flex;justify-content:center;gap:9px;flex-wrap:wrap}
+    .filter-btn{padding:8px 15px;border-radius:999px;background:rgba(25,25,25,.92);border:1px solid #363636;font-size:11px;transition:.2s;box-shadow:0 6px 18px rgba(0,0,0,.18)}
+    .filter-btn:hover{border-color:#777;background:rgba(45,45,45,.95)}
+    .filter-btn.active{background:linear-gradient(135deg,#d60000,#8f0000);border-color:#ef3a3a;box-shadow:0 8px 24px rgba(201,0,0,.28)}
+
+    /* Las categorías D salen como OVERLAY por debajo del nav — NO empujan
+       el catálogo. Solo se ven al hover, y se ocultan al sacar el mouse. */
+    #category-row{
+      position:absolute;left:0;right:0;top:56px;
+      z-index:39;
+      padding:8px 90px 12px;
+      background:linear-gradient(180deg,rgba(5,5,5,.96),rgba(5,5,5,.82) 70%,transparent);
+      opacity:0;transform:translateY(-6px);pointer-events:none;
+      transition:opacity .18s ease, transform .18s ease;
+    }
+    #category-row.show{opacity:1;transform:translateY(0);pointer-events:auto}
+    .filter-btn.category{padding:8px 14px;font-size:10px;background:#121212}
+    .filter-btn.category:hover{background:#1f1f1f}
+    .filter-btn.category.active{background:#d6ad45;border-color:#e8c56d;color:#111}
+
+    #catalog-pager{display:none;} /* El paginador viejo ya no se usa; ahora está dentro del poster. */
+
+    @media(max-width:900px){ #catalog-nav{padding-left:14px;padding-right:70px;} #category-row{padding-left:14px;padding-right:70px;} .filter-btn{padding:7px 12px;font-size:10px;} .nav-logo{height:28px;max-width:90px;} .nav-logo-fallback{font-size:11px;padding:3px 8px;} }
+    /* En pantallas muy chicas el nav sube a 48px y se reduce el logo aún más */
+    @media(max-width:560px){ #catalog-nav{height:48px;padding-left:10px;padding-right:60px;} #category-row{top:48px;padding-left:10px;padding-right:60px;} .nav-logo{height:24px;max-width:70px;} .nav-logo-fallback{font-size:10px;padding:2px 6px;} }
+  </style>
+</head>
+<body>
+  <main id="main-area">
+    <nav id="catalog-nav" aria-label="Filtros del catálogo">
+      <img src="https://i.imgur.com/BUW2u32.png" class="nav-logo" alt="CURREN LATAM" crossorigin="anonymous" onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='block'">
+      <div id="logo-fallback" class="nav-logo-fallback">CURREN<span class="sub">LATAM</span></div>
+      <div id="type-row" class="filter-row" role="tablist" aria-label="Tipo de producto"></div>
+      <div id="category-row" class="filter-row" role="tablist" aria-label="Categoría"></div>
+      <div class="nav-actions">
+        <button class="nav-action refresh" onclick="cargarDatos()" title="Actualizar catálogo" aria-label="Actualizar catálogo"><i class="fas fa-rotate"></i></button>
+        <button class="nav-action search" id="search-btn" onclick="toggleBusqueda()" title="Buscar" aria-label="Buscar referencia, modelo, color"><i class="fas fa-magnifying-glass"></i></button>
+        <button class="nav-action pdf" onclick="abrirModalDescarga()" title="Descargar PDF" aria-label="Descargar PDF"><i class="fas fa-file-pdf"></i></button>
+      </div>
+      <!-- Panel desplegable de búsqueda -->
+      <div class="search-panel" id="search-panel" role="dialog" aria-label="Búsqueda en el catálogo">
+        <div class="search-input-wrap">
+          <i class="fas fa-magnifying-glass"></i>
+          <input type="text" class="search-input" id="search-input"
+            placeholder="Buscar referencia, modelo, color, tipo…"
+            autocomplete="off" aria-label="Campo de búsqueda"
+            oninput="filtrarResultadosBusqueda()">
+        </div>
+        <div class="search-results" id="search-results"></div>
+      </div>
+    </nav>
+    <div id="scale-wrapper">
+      <div id="poster-canvas"><div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#aaa">Cargando diseño...</div></div>
+    </div>
+  </main>
+
+  <!-- Modal de descarga PDF: ¿Todo o por filtros? -->
+  <div class="modal-overlay" id="download-modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+    <div class="modal-card">
+      <h2 class="modal-title" id="modal-title">Descargar catálogo en PDF</h2>
+      <p class="modal-subtitle">Elige qué páginas quieres incluir en el PDF.</p>
+      <div class="modal-options">
+        <label class="modal-option selected" data-mode="all">
+          <input type="radio" name="dl-mode" value="all" checked>
+          <span class="opt-text">
+            <span class="opt-title">Todo el catálogo</span>
+            <span class="opt-desc" id="opt-all-desc">Descarga todas las páginas disponibles.</span>
+          </span>
+        </label>
+        <label class="modal-option" data-mode="current">
+          <input type="radio" name="dl-mode" value="current">
+          <span class="opt-text">
+            <span class="opt-title">Solo el filtro actual</span>
+            <span class="opt-desc" id="opt-current-desc">Descarga lo que estás viendo ahora.</span>
+          </span>
+        </label>
+        <label class="modal-option" data-mode="custom">
+          <input type="radio" name="dl-mode" value="custom">
+          <span class="opt-text">
+            <span class="opt-title">Elegir por tipo y categoría</span>
+            <span class="opt-desc">Filtra por menús y submenús antes de descargar.</span>
+          </span>
+        </label>
+      </div>
+      <div class="modal-filters" id="modal-filters">
+        <label class="filter-label">Tipo</label>
+        <div class="modal-chips" id="modal-type-chips"></div>
+        <label class="filter-label">Categoría (opcional)</label>
+        <div class="modal-chips" id="modal-cat-chips"></div>
+      </div>
+      <div class="modal-buttons">
+        <button class="modal-btn" onclick="cerrarModalDescarga()">Cancelar</button>
+        <button class="modal-btn primary" id="modal-generate" onclick="generarPDF()">Generar PDF</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="loader" id="loader" style="display:none">
+    <div class="loader-logo-wrap">
+      <div class="loader-ring"></div>
+      <img src="https://i.imgur.com/BUW2u32.png" class="loader-logo" alt="CURREN LATAM" crossorigin="anonymous" onerror="this.style.display='none';document.getElementById('loader-fallback').style.display='block'">
+      <div id="loader-fallback" class="loader-logo-fallback">CURREN<span class="sub">LATAM</span></div>
+    </div>
+    <div class="loader-text-wrap">
+      <div class="loader-title">
+        <span id="loader-text">Generando catálogo en PDF</span>
+        <span class="loader-dots"><span></span><span></span><span></span></span>
+      </div>
+      <div class="loader-subtitle" id="loader-subtitle">Esto puede tardar unos segundos…</div>
+      <div class="loader-progress-bar"></div>
+    </div>
+  </div>
+
+  <script>
+    let grupos=[];
+    let gruposFiltrados=[];
+    let idx=0;
+    // null significa: no se ha seleccionado una categoría.
+    // En ese estado se muestran TODAS las categorías del tipo seleccionado.
+    let tipoActivo=null;
+    let categoriaActiva=null;
+    // Temporizador del hover. Si el usuario hace click antes de que se
+    // dispare, se cancela. Evita que las categorías queden "colgadas"
+    // cuando el mouseenter y el click se disparan en rápida sucesión.
+    let hoverTimer=null;
+    // Flag que suprime el hover durante unos ms después de un click. Así se
+    // evita que un mouseenter espurio (disparado justo después del click en
+    // algunos navegadores) vuelva a mostrar categorías que ya se limpiaron.
+    let suppressHover=false;
+    // Tipo sobre el que el mouse está ENCIMA (hover). Se actualiza al pasar
+    // el mouse por un botón de Tipo y se usa cuando el usuario hace click en
+    // una Categoría del hover SIN haber seleccionado un Tipo antes. Así el
+    // click en categoría funciona directamente (no obliga a dar click en
+    // el Tipo primero).
+    let hoverTipoActual=null;
+    const BRAND_NAME='CURREN LATAM';
+    const INSTAGRAM='@currenlatam';
+
+    // ====================================================================
+    //  URL PÚBLICA DEL WEB APP (Google Apps Script)
+    //  - Despliega tu Code.gs como Web App (Executing as: Me, Access: Anyone).
+    //  - Copia aquí la URL que te da Google (la que termina en /exec).
+    //  - El index puede vivir en GitHub Pages, Netlify, etc. y se comunicará
+    //    con tu Code.gs a través de esta URL mediante fetch().
+    // ====================================================================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzf6Wgoe2We9Gj2tsLNVfFYBNFTIeySPd68QTrSLXBaafjLgBSB2jP3feu1GwuT42U2/exec';
+
+    document.addEventListener('DOMContentLoaded',()=>{
+      ajustarZoom();
+      window.addEventListener('resize',ajustarZoom);
+      // Al sacar el mouse del nav, OCULTAMOS las categorías (sin importar
+      // si hay tipo activo o no). Así las D nunca se quedan "pegadas"
+      // debajo de un Tipo seleccionado: solo aparecen al hover.
+      const nav=document.getElementById('catalog-nav');
+      if(nav) nav.addEventListener('mouseleave',restaurarCategorias);
+      // Modal de descarga: conectar radios, click en overlay y ESC.
+      document.querySelectorAll('input[name="dl-mode"]').forEach(r=>{
+        r.addEventListener('change', actualizarOpcionesModal);
+      });
+      const modal=document.getElementById('download-modal');
+      if(modal) modal.addEventListener('click', function(e){
+        if(e.target===modal) cerrarModalDescarga();
+      });
+      // Cerrar la búsqueda al hacer click fuera del panel.
+      document.addEventListener('click', function(e){
+        if(!busquedaAbierta) return;
+        const panel=document.getElementById('search-panel');
+        const btn=document.getElementById('search-btn');
+        if(panel && !panel.contains(e.target) && btn && !btn.contains(e.target)){
+          cerrarBusqueda();
+        }
+      });
+      document.addEventListener('keydown', function(e){
+        if(e.key==='Escape') cerrarModalDescarga();
+        if(e.key==='Escape') cerrarBusqueda();
+        // Navegación con flechas izquierda/derecha del teclado.
+        // Si el foco está en un input (búsqueda) o el modal está abierto,
+        // no interceptamos las flechas para no interferir.
+        const esInput = e.target && (e.target.tagName==='INPUT' || e.target.tagName==='TEXTAREA');
+        const modalAbierto = document.getElementById('download-modal').classList.contains('show');
+        if(esInput || modalAbierto || busquedaAbierta) return;
+        if(e.key==='ArrowLeft'){ e.preventDefault(); cambiar(-1); }
+        if(e.key==='ArrowRight'){ e.preventDefault(); cambiar(1); }
+      });
+      cargarDatos();
+    });
+
+    function ajustarZoom(){
+      const wrap=document.getElementById('scale-wrapper');
+      const main=document.getElementById('main-area');
+      const nav=document.getElementById('catalog-nav');
+      // Leemos la altura REAL del nav (responde a los media queries). Así el
+      // catálogo se adapta a cualquier pantalla sin quedar oculto ni con gap.
+      const navH=nav ? nav.getBoundingClientRect().height : 56;
+      // El paginador ya está DENTRO del poster, así que no reservamos espacio
+      // extra abajo. Solo un pequeño margen (8px) para que el poster no toque
+      // los bordes de la ventana.
+      const MARGIN=8;
+      const availW=main.clientWidth - MARGIN*2;
+      const availH=main.clientHeight - navH - MARGIN;
+      // Calculamos escala para que el poster 1434x807 quepa en el área libre.
+      // Sin límite de 1: en pantallas grandes el poster crece hasta llenar.
+      const s=Math.min(availW/1434, availH/807);
+      // Alto del poster escalado (para saber cuánto espacio vertical queda).
+      const posterH = 807 * s;
+      // Espacio vertical sobrante después de poner el poster.
+      const sobranteV = availH - posterH;
+      // Centramos verticalmente el poster en el espacio libre. Si sobra mucho
+      // (pantallas verticales), el poster queda en el medio en vez de pegado
+      // arriba. Si no sobra nada (pantallas 16:9), queda pegado al nav.
+      const offsetY = navH + MARGIN/2 + Math.max(0, sobranteV/2);
+      // El wrapper es absoluto, left:50%. Lo centramos con translateX(-50%)
+      // y lo empujamos hacia abajo con translateY(offsetY). El escalado se
+      // aplica con origen top center, así el poster crece hacia abajo.
+      wrap.style.transform=`translateX(-50%) translateY(${offsetY}px) scale(${s})`;
+      wrap.style.transformOrigin='top center';
+    }
+
+    function cargarDatos(){
+      mostrarLoader('Bienvenido a nuestro catálogo', 'Leyendo datos…');
+      // Comunicación con el Web App de Google Apps Script mediante fetch.
+      // Se agrega un cache-buster (_t) para evitar respuestas cacheadas por
+      // el navegador o por la red de Google, garantizando siempre datos frescos.
+      const url = SCRIPT_URL + '?action=catalog&_t=' + Date.now();
+      fetch(url, { method: 'GET', redirect: 'follow' })
+        .then(r => {
+          if(!r.ok) throw new Error('HTTP ' + r.status);
+          return r.json();
+        })
+        .then(data => {
+          if(!data || !data.length){ alert("No hay datos. Ejecuta 'crearEstructuraSimple'."); ocultarLoader(); return; }
+          grupos = data; tipoActivo = null; categoriaActiva = null; construirFiltros(); aplicarFiltros(); ocultarLoader();
+        })
+        .catch(e => {
+          alert('Error al cargar el catálogo: ' + e.message + '\n\nVerifica que SCRIPT_URL apunte a tu Web App desplegado.');
+          ocultarLoader();
+        });
+    }
+
+    function esc(v){
+      return String(v??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
+    }
+    function money(v){
+      const n=Number(v)||0;
+      return '$'+n.toLocaleString('es-CO').replace(/\u00a0/g,' ')+' COP';
+    }
+    function normalizarFiltro(v){ return String(v||'').trim().toUpperCase(); }
+    function valoresUnicos(lista, campo){
+      const vistos=new Set();
+      return lista.map(g=>String(g?.[campo]??'').trim()).filter(v=>v && !vistos.has(normalizarFiltro(v)) && vistos.add(normalizarFiltro(v)));
+    }
+
+    function construirFiltros(){
+      const typeRow = document.getElementById('type-row');
+      if(!typeRow) return;
+
+      // COLUMNA C = TIPO. Se genera directamente desde los datos.
+      const tipos = valoresUnicos(grupos, 'tipo');
+
+      typeRow.innerHTML = tipos.map(t => `
+        <button
+          type="button"
+          class="filter-btn ${tipoActivo && normalizarFiltro(t)===normalizarFiltro(tipoActivo) ? 'active' : ''}"
+          data-tipo="${esc(t)}">
+          ${esc(t)}
+        </button>
+      `).join('');
+
+      // Click y mouse sobre C
+      typeRow.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', function(e){
+          // Cancela cualquier hover pendiente y bloquea el próximo mouseenter
+          // para que el toggle sea limpio (incluso si el navegador dispara
+          // mouseenter justo después del click).
+          clearTimeout(hoverTimer);
+          suppressHover=true;
+          setTimeout(()=>{ suppressHover=false; }, 250);
+          e.preventDefault();
+          e.stopPropagation();
+          seleccionarTipo(this.dataset.tipo);
+        });
+
+        btn.addEventListener('mouseenter', function(){
+          // Si acabamos de hacer click, ignoramos este mouseenter espurio.
+          if(suppressHover) return;
+          // Pequeño debounce: si el usuario hace click rápido, el click
+          // cancela este timer y el toggle queda correcto.
+          clearTimeout(hoverTimer);
+          const tipoHover=this.dataset.tipo;
+          hoverTimer=setTimeout(()=>mostrarCategoriasPorTipo(tipoHover),50);
+        });
+      });
+
+      // D NUNCA se muestra permanente al construir los filtros.
+      // Solo aparece al hover sobre un botón de Tipo (ver mouseenter).
+      // Los filtros activos se ven en los chips del nav.
+      const categoryRow=document.getElementById('category-row');
+      if(categoryRow){
+        categoryRow.innerHTML='';
+        categoryRow.classList.remove('show');
+      }
+    }
+
+    function mostrarCategoriasPorTipo(tipo){
+      const categoryRow = document.getElementById('category-row');
+      if(!categoryRow) return;
+
+      // Guardamos el tipo que se está mostrando (hover). Si el usuario hace
+      // click en una categoría SIN tener un tipoActivo seleccionado, este
+      // será el tipo que se use. Así no obligas al usuario a dar click en
+      // el Tipo primero: hover → click en categoría → filtra directo.
+      hoverTipoActual = tipo;
+
+      // Solo registros cuyo valor de C coincida.
+      const base = grupos.filter(g =>
+        normalizarFiltro(g.tipo) === normalizarFiltro(tipo)
+      );
+
+      // CATEGORÍA = COLUMNA D
+      const categorias = valoresUnicos(base, 'categoria');
+
+      if(!categorias.length){
+        categoryRow.innerHTML = '';
+        return;
+      }
+
+      categoryRow.innerHTML = categorias.map(c => `
+        <button
+          type="button"
+          class="filter-btn category ${
+            categoriaActiva &&
+            normalizarFiltro(c)===normalizarFiltro(categoriaActiva)
+              ? 'active'
+              : ''
+          }"
+          data-categoria="${esc(c)}">
+          ${esc(c)}
+        </button>
+      `).join('');
+      // Mostramos con animación la fila de categorías.
+      categoryRow.classList.add('show');
+
+      // Click en D
+      categoryRow.querySelectorAll('.filter-btn.category').forEach(btn => {
+        btn.addEventListener('click', function(e){
+          e.preventDefault();
+          e.stopPropagation();
+          seleccionarCategoria(this.dataset.categoria);
+        });
+      });
+    }
+
+    // Oculta las categorías al sacar el mouse del nav.
+    // Las D NUNCA se quedan "pegadas": solo se ven al hover.
+    function restaurarCategorias(){
+      clearTimeout(hoverTimer);
+      // Si no hay tipoActivo seleccionado (solo hover), limpiamos el
+      // hoverTipoActual para que no quede fantasma al sacar el mouse.
+      if(!tipoActivo) hoverTipoActual=null;
+      const categoryRow=document.getElementById('category-row');
+      if(categoryRow){
+        categoryRow.classList.remove('show');
+        // Limpiamos tras la transición para que no quede HTML invisible.
+        setTimeout(()=>{ if(!categoryRow.classList.contains('show')) categoryRow.innerHTML=''; }, 200);
+      }
+    }
+
+    function seleccionarTipo(t){
+      // Toggle: si se hace click en el tipo ya activo, se deselecciona.
+      // Al deseleccionar C, se unifica todo (se muestran TODOS los productos
+      // de TODOS los tipos y categorías).
+      if(tipoActivo && normalizarFiltro(t)===normalizarFiltro(tipoActivo)){
+        tipoActivo = null;
+      }else{
+        tipoActivo = t;
+      }
+
+      // Al cambiar (o deseleccionar) C se elimina la selección de D.
+      categoriaActiva = null;
+
+      construirFiltros();
+      aplicarFiltros();
+    }
+
+    function seleccionarCategoria(c){
+      // Si no hay tipoActivo seleccionado pero el mouse está sobre un Tipo
+      // (hoverTipoActual), usamos ese tipo. Así el usuario puede hacer hover
+      // sobre un Tipo y directamente click en una Categoría, sin tener que
+      // dar click en el Tipo primero.
+      if(!tipoActivo && hoverTipoActual){
+        tipoActivo = hoverTipoActual;
+        // Resetea el toggle de categoría para que empiece limpio.
+        categoriaActiva = null;
+        // Reconstruye los filtros para que el Tipo quede visualmente activo.
+        construirFiltros();
+      }
+
+      // Si después de lo anterior sigue sin haber tipo, no se puede filtrar.
+      if(!tipoActivo) return;
+
+      // Cancela el hover pendiente y bloquea el próximo mouseenter para que
+      // el click en categoría no sea afectado por el mouseleave del nav.
+      clearTimeout(hoverTimer);
+      suppressHover=true;
+      setTimeout(()=>{ suppressHover=false; }, 250);
+
+      // Toggle: si se hace click en la categoría ya activa, se deselecciona.
+      if(categoriaActiva && normalizarFiltro(c)===normalizarFiltro(categoriaActiva)){
+        categoriaActiva = null;
+      }else{
+        categoriaActiva = c;
+      }
+
+      // No mantenemos las D visibles: el mouse ya está saliendo del botón.
+      aplicarFiltros();
+    }
+
+    function aplicarFiltros(){
+      gruposFiltrados = grupos.filter(g => {
+        const coincideTipo =
+          !tipoActivo ||
+          normalizarFiltro(g.tipo) === normalizarFiltro(tipoActivo);
+
+        const coincideCategoria =
+          !categoriaActiva ||
+          normalizarFiltro(g.categoria) === normalizarFiltro(categoriaActiva);
+
+        return coincideTipo && coincideCategoria;
+      });
+
+      idx = 0;
+      renderizar();
+    }
+
+    function renderizar(){
+      const lista = gruposFiltrados;
+      if(!lista.length){ document.getElementById('poster-canvas').innerHTML='<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%;color:#aaa">No hay productos en este filtro.</div>'; return; }
+      const grupo=lista[idx], first=grupo.items[0]||{}, ficha=grupo.ficha||{}, items=grupo.items.slice(0,6);
+      const assets=grupo.assets||{};
+      let cards='';
+      items.forEach(item=>{cards+=`<div class="variant-card"><img src="${esc(item.imagen)}" crossorigin="anonymous" loading="eager" decoding="async" onerror="this.style.visibility='hidden'"><div class="variant-label">${esc(item.color||'')}</div></div>`;});
+      const countClass='count-'+items.length;
+
+      const comboHtml=assets.mostrarComboGold&&assets.comboGold?`<img class="asset-logo combo-gold-image" src="${esc(assets.comboGold)}" crossorigin="anonymous" onerror="this.remove()">`:'';
+      const currenHtml=assets.mostrarCurrenLatam&&assets.currenLatam?`<img class="asset-logo curren-latam-image" src="${esc(assets.currenLatam)}" crossorigin="anonymous" onerror="this.remove()">`:'';
+      const poster=document.getElementById('poster-canvas');
+      poster.classList.toggle('has-custom-bg',!!(assets.mostrarFondo&&assets.fondo));
+      poster.style.backgroundImage=(assets.mostrarFondo&&assets.fondo)?`url("${String(assets.fondo).replace(/"/g,'\\"')}")`:'';
+
+      poster.innerHTML=`
+        ${comboHtml}
+        <div class="ref-title">${esc(grupo.tipo||'RELOJ')} · REF. ${esc(grupo.referencia)}</div>
+        <div class="products ${countClass}">${cards}</div>
+        ${currenHtml}
+        <div class="cta">¡Descubre el potencial de la relojería!</div>
+        <div class="poster-pager">
+          <button onclick="cambiar(-1)" title="Anterior (←)" aria-label="Página anterior" ${idx<=0?'disabled':''}><i class="fas fa-chevron-left"></i></button>
+          <div class="pager-info"><b id="curr">${lista.length?idx+1:0}</b> / <span id="tot">${lista.length}</span></div>
+          <button onclick="cambiar(1)" title="Siguiente (→)" aria-label="Página siguiente" ${idx>=lista.length-1?'disabled':''}><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <section class="info-panel">
+          <h2 class="info-title">SOBRE NUESTRO RELOJ:</h2>
+          <div class="product-description">${esc(ficha.descripcion||'')}</div>
+          <div class="price-box"><div class="price-label">PRECIO DE VENTA<br>POR MAYOR</div><div class="price">${money(ficha.precioMayorista)}</div><div class="price-label retail-label">PRECIO SUGERIDO<br>VENTA AL PUBLICO</div><div class="price">${money(ficha.precioPublico)}</div></div>
+        </section>
+        <div class="social"><span class="handle">${esc(INSTAGRAM)}</span><i class="fab fa-instagram"></i><i class="fab fa-facebook-f"></i><i class="fab fa-tiktok"></i></div>`;
+    }
+
+    function cambiar(dir){
+      const n=idx+dir;
+      if(n>=0&&n<gruposFiltrados.length){ idx=n; renderizar(); }
+    }
+
+    function esperar(ms){ return new Promise(r=>setTimeout(r,ms)); }
+    function canvasToBlob(canvas){ return new Promise((resolve,reject)=>canvas.toBlob(b=>b?resolve(b):reject(new Error('No se pudo crear la imagen')), 'image/png')); }
+
+    async function esperarImagenesCompletas(contenedor){
+      const imgs=[...contenedor.querySelectorAll('img')];
+      await Promise.all(imgs.map(img=>new Promise(resolve=>{
+        if(img.complete && img.naturalWidth>0){ resolve(); return; }
+        const done=()=>{ img.removeEventListener('load',done); img.removeEventListener('error',done); resolve(); };
+        img.addEventListener('load',done,{once:true});
+        img.addEventListener('error',done,{once:true});
+      })));
+      if(document.fonts && document.fonts.ready) await document.fonts.ready;
+    }
+
+    // ================== DESCARGA PDF (con modal) ==================
+
+    // Estado del modal: qué modo eligió y qué filtros custom.
+    let modalMode='all';            // 'all' | 'current' | 'custom'
+    let modalTipoSel=null;          // tipo seleccionado en modo custom (string)
+    let modalCatSel=null;           // categoría seleccionada en modo custom (string|null)
+
+    // Abre el modal y rellena las descripciones con conteos reales.
+    function abrirModalDescarga(){
+      const modal=document.getElementById('download-modal');
+      if(!modal) return;
+      // Actualizamos los textos con conteos reales para que el usuario sepa
+      // cuántas páginas va a descargar en cada opción.
+      const total=grupos.length;
+      const actual=gruposFiltrados.length;
+      document.getElementById('opt-all-desc').textContent=`Descarga las ${total} páginas del catálogo completo.`;
+      document.getElementById('opt-current-desc').textContent=`Descarga las ${actual} páginas del filtro actual.`;
+      // Resetea a la opción por defecto: todo.
+      modalMode='all';
+      modalTipoSel=null;
+      modalCatSel=null;
+      document.querySelector('input[name="dl-mode"][value="all"]').checked=true;
+      actualizarOpcionesModal();
+      rellenarChipsModal();
+      document.getElementById('modal-filters').classList.remove('show');
+      document.getElementById('modal-generate').disabled=false;
+      modal.classList.add('show');
+    }
+
+    function cerrarModalDescarga(){
+      const modal=document.getElementById('download-modal');
+      if(modal) modal.classList.remove('show');
+    }
+
+    // Sincroniza el .selected de las etiquetas con el radio elegido.
+    function actualizarOpcionesModal(){
+      const radios=document.querySelectorAll('input[name="dl-mode"]');
+      radios.forEach(r=>{
+        const label=r.closest('.modal-option');
+        if(!label) return;
+        label.classList.toggle('selected', r.checked);
+        if(r.checked) modalMode=r.value;
+      });
+      // Muestra/oculta el bloque de filtros custom.
+      const filters=document.getElementById('modal-filters');
+      if(modalMode==='custom'){
+        filters.classList.add('show');
+        // Si no hay ningún tipo seleccionado, marca el primero por defecto.
+        if(!modalTipoSel) rellenarChipsModal();
+      }else{
+        filters.classList.remove('show');
+      }
+    }
+
+    // Rellena los chips de tipo y categoría en el modal.
+    function rellenarChipsModal(){
+      // Tipos únicos
+      const tipos=valoresUnicos(grupos,'tipo');
+      const typeChips=document.getElementById('modal-type-chips');
+      typeChips.innerHTML=tipos.map(t=>`
+        <button type="button" class="modal-chip ${modalTipoSel&&normalizarFiltro(t)===normalizarFiltro(modalTipoSel)?'selected':''}" data-tipo="${esc(t)}">${esc(t)}</button>
+      `).join('');
+      typeChips.querySelectorAll('.modal-chip').forEach(btn=>{
+        btn.addEventListener('click', function(){
+          modalTipoSel=this.dataset.tipo;
+          modalCatSel=null;
+          rellenarChipsModal();
+          actualizarBotonGenerar();
+        });
+      });
+      // Categorías del tipo seleccionado (o todas si no hay tipo).
+      const base=modalTipoSel?grupos.filter(g=>normalizarFiltro(g.tipo)===normalizarFiltro(modalTipoSel)):grupos;
+      const cats=valoresUnicos(base,'categoria');
+      const catChips=document.getElementById('modal-cat-chips');
+      catChips.innerHTML=`
+        <button type="button" class="modal-chip cat ${!modalCatSel?'selected':''}" data-cat="">Todas</button>
+        ${cats.map(c=>`<button type="button" class="modal-chip cat ${modalCatSel&&normalizarFiltro(c)===normalizarFiltro(modalCatSel)?'selected':''}" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+      `;
+      catChips.querySelectorAll('.modal-chip').forEach(btn=>{
+        btn.addEventListener('click', function(){
+          modalCatSel=this.dataset.cat||null;
+          rellenarChipsModal();
+          actualizarBotonGenerar();
+        });
+      });
+    }
+
+    // Habilita/deshabilita el botón Generar según la selección.
+    function actualizarBotonGenerar(){
+      const btn=document.getElementById('modal-generate');
+      if(!btn) return;
+      const deshabilitar = modalMode==='custom' && !modalTipoSel;
+      btn.disabled=deshabilitar;
+    }
+
+    // Construye la lista de páginas a exportar según el modo elegido.
+    function obtenerPaginasAEExportar(){
+      if(modalMode==='current') return gruposFiltrados.slice();
+      if(modalMode==='custom'){
+        return grupos.filter(g=>{
+          const coincideTipo = modalTipoSel && normalizarFiltro(g.tipo)===normalizarFiltro(modalTipoSel);
+          const coincideCat = !modalCatSel || normalizarFiltro(g.categoria)===normalizarFiltro(modalCatSel);
+          return coincideTipo && coincideCat;
+        });
+      }
+      // 'all' → todo
+      return grupos.slice();
+    }
+
+    // Genera el PDF con las páginas elegidas. Cada página es una imagen
+    // de alta resolución (1920×1080, Full HD 16:9) que llena TODA la página
+    // del PDF sin márgenes blancos. El formato del PDF es [1080,1920] en
+    // puntos para que la relación de aspecto sea EXACTAMENTE 16:9 y la
+    // imagen no se estire.
+    async function generarPDF(){
+      const exportar=obtenerPaginasAEExportar();
+      if(!exportar.length){
+        alert('No hay páginas para descargar con esa selección.');
+        return;
+      }
+      cerrarModalDescarga();
+      // Mostrar 0% al empezar. El porcentaje se actualiza en cada iteración.
+      mostrarLoader('Generando catálogo en PDF', '0%');
+
+      // jsPDF UMD expone window.jspdf.jsPDF
+      const { jsPDF } = window.jspdf;
+      // Usamos un formato personalizado 16:9 (en puntos) para que cada página
+      // tenga la MISMA relación de aspecto que el poster. Así la imagen llena
+      // toda la página sin estirarse y sin dejar margen blanco.
+      const pdf = new jsPDF({
+        orientation:'landscape',
+        unit:'pt',
+        format:[1080, 1920]   // [alto, ancho] en landscape → 1920×1080 pt (16:9)
+      });
+      const pageW = pdf.internal.pageSize.getWidth();   // 1920
+      const pageH = pdf.internal.pageSize.getHeight();  // 1080
+
+      const origIdx=idx;
+      const origGruposFiltrados=gruposFiltrados.slice();
+      const wrap=document.getElementById('scale-wrapper');
+      const poster=document.getElementById('poster-canvas');
+
+      // OPTIMIZACIÓN: esperamos a las fuentes UNA sola vez antes de empezar.
+      // Antes se llamaba en cada iteración (8 veces) y era lento.
+      if(document.fonts && document.fonts.ready) await document.fonts.ready;
+
+      try{
+        for(let i=0;i<exportar.length;i++){
+          // IMPORTANTE: gruposFiltrados SIEMPRE se setea como [página_actual]
+          // (un solo elemento), por eso idx debe ser 0, no i. Si fuera i,
+          // renderizar() haría lista[i] y devolvería undefined.
+          gruposFiltrados=[exportar[i]];
+          idx=0;
+          renderizar();
+
+          // OPTIMIZACIÓN: espera reducida de 480ms a 80ms total.
+          // Antes: 300ms + esperarImagenes + 100ms + 80ms = ~500ms/página.
+          // Ahora: 30ms + esperarImagenes + 0ms = ~80ms/página (6x más rápido).
+          await esperar(30);
+          await esperarImagenesCompletas(poster);
+
+          // Congelamos el zoom de la interfaz para que html2canvas
+          // capture el poster a su tamaño real 1434×807.
+          const oldWrapTransform=wrap.style.transform;
+          const oldPosterTransform=poster.style.transform;
+          wrap.style.transform='none';
+          poster.style.transform='none';
+          // El reflow (offsetWidth) es sincrónico: no hace falta esperar.
+          void poster.offsetWidth;
+
+          // OPTIMIZACIÓN: renderScale reducido a 1920/1434 (~1.34x).
+          // Antes: 3840/1434 ≈ 2.68x (canvas 3840×2160 = 8.3M píxeles).
+          // Ahora: 1920/1434 ≈ 1.34x (canvas 1920×1080 = 2.07M píxeles, 4x menos).
+          // Sigue siendo Full HD y el PDF se ve nítido en pantalla e impresión A4.
+          const renderScale=1920/1434;
+          const raw=await html2canvas(poster,{
+            scale:renderScale,
+            width:1434,
+            height:807,
+            x:0, y:0, scrollX:0, scrollY:0,
+            useCORS:true, allowTaint:false,
+            backgroundColor:null,
+            imageTimeout:15000,
+            logging:false,
+            removeContainer:true,
+            foreignObjectRendering:false
+          });
+
+          // Recortar a 1920×1080 exacto (Full HD 16:9). Mismo truco que
+          // antes pero con la mitad de resolución → 4x más rápido.
+          const finalCanvas=document.createElement('canvas');
+          finalCanvas.width=1920;
+          finalCanvas.height=1080;
+          const ctx=finalCanvas.getContext('2d');
+          ctx.imageSmoothingEnabled=true;
+          ctx.imageSmoothingQuality='high';
+          ctx.drawImage(raw, 0,0, raw.width, Math.min(raw.height,1080), 0,0, 1920,1080);
+
+          // Restaurar el zoom de la interfaz.
+          wrap.style.transform=oldWrapTransform;
+          poster.style.transform=oldPosterTransform;
+
+          // Añadir la imagen al PDF. LLENA TODA LA PÁGINA (sin margen blanco).
+          // El poster (1920×1080) y la página del PDF (1920×1080 pt) tienen
+          // la MISMA relación de aspecto 16:9, así que la imagen encaja
+          // perfectamente sin estirarse ni deformarse.
+          const imgData=finalCanvas.toDataURL('image/jpeg', 0.88);
+          if(i>0) pdf.addPage();
+          pdf.addImage(imgData, 'JPEG', 0, 0, pageW, pageH);
+
+          // Actualizamos el porcentaje de progreso (0% a 100%).
+          // Redondeamos para evitar decimales. La fórmula (i+1)/total*100
+          // da 100% en la última iteración completada.
+          const pct = Math.round(((i+1) / exportar.length) * 100);
+          mostrarLoader('Generando catálogo en PDF', pct + '%');
+        }
+
+        // Mostrar 100% un instante antes de descargar el PDF.
+        mostrarLoader('Generando catálogo en PDF', '100%');
+        await esperar(300);
+
+        // Nombre del archivo según el modo.
+        let nombre='CATALOGO_CURREN_LATAM';
+        if(modalMode==='current'){
+          nombre += '_FILTRO_ACTUAL';
+        }else if(modalMode==='custom'){
+          nombre += '_' + String(modalTipoSel||'TODO').replace(/[^a-z0-9]/gi,'_');
+          if(modalCatSel) nombre += '_' + String(modalCatSel).replace(/[^a-z0-9]/gi,'_');
+        }
+        pdf.save(nombre + '.pdf');
+
+      }catch(e){
+        alert('Error al generar el PDF: '+e.message);
+      }finally{
+        // Siempre dejamos la interfaz exactamente como estaba antes
+        // de empezar la generación del PDF.
+        wrap.style.transform='';
+        poster.style.transform='';
+        gruposFiltrados=origGruposFiltrados;
+        // Aseguramos que idx esté dentro del rango válido del array restaurado.
+        if(origIdx>=0 && origIdx<gruposFiltrados.length){
+          idx=origIdx;
+        }else{
+          idx=0;
+        }
+        ajustarZoom();
+        renderizar();
+        ocultarLoader();
+      }
+    }
+
+    // Al cargar la página, conectamos los radios del modal.
+    // (La inicialización del modal está fusionada en el DOMContentLoaded
+    //  principal de arriba para no duplicar listeners.)
+
+    // ================== BÚSQUEDA (lupa) ==================
+
+    // Estado del panel de búsqueda.
+    let busquedaAbierta=false;
+
+    // Abre/cierra el panel de búsqueda. Al abrir, pone el foco en el input.
+    function toggleBusqueda(){
+      const panel=document.getElementById('search-panel');
+      const btn=document.getElementById('search-btn');
+      if(!panel || !btn) return;
+      busquedaAbierta=!busquedaAbierta;
+      if(busquedaAbierta){
+        panel.classList.add('show');
+        btn.classList.add('active');
+        const input=document.getElementById('search-input');
+        if(input){
+          // Limpia y rellena resultados al abrir.
+          input.value='';
+          setTimeout(()=>input.focus(), 50);
+        }
+        filtrarResultadosBusqueda();
+      }else{
+        cerrarBusqueda();
+      }
+    }
+
+    function cerrarBusqueda(){
+      const panel=document.getElementById('search-panel');
+      const btn=document.getElementById('search-btn');
+      if(panel) panel.classList.remove('show');
+      if(btn) btn.classList.remove('active');
+      busquedaAbierta=false;
+    }
+
+    // Filtra los grupos según el texto del input. Busca en referencia,
+    // modelo, color, tipo, categoría y descripción (cualquier coincidencia).
+    function filtrarResultadosBusqueda(){
+      const input=document.getElementById('search-input');
+      const cont=document.getElementById('search-results');
+      if(!input || !cont) return;
+      const q=normalizarFiltro(input.value).trim();
+
+      // Si no hay texto, mostramos hasta 20 resultados (para que el usuario
+      // vea que el panel funciona y pueda hacer click en cualquiera).
+      let resultados;
+      if(!q){
+        resultados = grupos.slice(0, 20);
+      }else{
+        resultados = grupos.filter(g=>{
+          // Buscamos en todos los campos relevantes del grupo y sus items.
+          const enGrupo = [g.referencia, g.tipo, g.categoria]
+            .some(v => normalizarFiltro(v).includes(q));
+          if(enGrupo) return true;
+          // También buscamos en los items (modelo, color, descripción).
+          return (g.items||[]).some(it=>{
+            return [it.modelo, it.color, it.descripcion, it.referencia]
+              .some(v => normalizarFiltro(v).includes(q));
+          });
+        });
+      }
+
+      if(!resultados.length){
+        cont.innerHTML='<div class="search-empty">No se encontró nada para "'+esc(input.value)+'".</div>';
+        return;
+      }
+
+      // Mostramos hasta 40 resultados para no saturar el panel.
+      cont.innerHTML = resultados.slice(0, 40).map((g, idx)=>{
+        const item=(g.items && g.items[0]) || {};
+        const colores=(g.items||[]).map(i=>esc(i.color)).filter(Boolean).join(' · ');
+        return `
+          <div class="search-result" data-grupo-idx="${grupos.indexOf(g)}" onclick="irAResultado(${grupos.indexOf(g)})">
+            <div class="sr-ref">REF. ${esc(g.referencia||'')}</div>
+            <div class="sr-title">${esc(item.modelo||g.referencia||'')}</div>
+            <div class="sr-meta">
+              <span class="badge">${esc(g.tipo||'')}</span>
+              <span class="badge cat">${esc(g.categoria||'')}</span>
+              ${colores ? '<span>'+colores+'</span>' : ''}
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Al hacer click en un resultado, limpia filtros, aplica el del grupo
+    // y salta a la página del catálogo donde está ese grupo.
+    function irAResultado(grupoIdx){
+      const g=grupos[grupoIdx];
+      if(!g) return;
+      // Limpia los filtros activos y filtra por el tipo + categoría del
+      // resultado seleccionado. Así el menú + submenú quedan visualmente
+      // activos en el nav.
+      tipoActivo=g.tipo;
+      categoriaActiva=g.categoria;
+      construirFiltros();
+      // IMPORTANTE: aplicamos el filtro MANUALMENTE sin llamar a aplicarFiltros()
+      // porque aplicarFiltros() hace idx=0 y entonces NO llevaría a la hoja
+      // del resultado seleccionado (siempre quedaría en la primera).
+      gruposFiltrados = grupos.filter(x=>{
+        const ct = !tipoActivo || normalizarFiltro(x.tipo)===normalizarFiltro(tipoActivo);
+        const cc = !categoriaActiva || normalizarFiltro(x.categoria)===normalizarFiltro(categoriaActiva);
+        return ct && cc;
+      });
+      // Buscamos el índice del grupo seleccionado dentro de gruposFiltrados
+      // para que el catálogo SALTE a esa hoja específica.
+      const idxEnFiltrados = gruposFiltrados.findIndex(x =>
+        normalizarFiltro(x.referencia)===normalizarFiltro(g.referencia) &&
+        normalizarFiltro(x.tipo)===normalizarFiltro(g.tipo) &&
+        normalizarFiltro(x.categoria)===normalizarFiltro(g.categoria)
+      );
+      idx = idxEnFiltrados>=0 ? idxEnFiltrados : 0;
+      // Llamamos a renderizar() directamente (no a aplicarFiltros, que
+      // resetearía idx).
+      renderizar();
+      cerrarBusqueda();
+      // Cerrar también las categorías del hover si estaban abiertas.
+      restaurarCategorias();
+    }
+
+    // Muestra el loader animado con logo CURREN LATAM.
+    // Acepta dos argumentos:
+    //   title     = texto grande del título (debajo del logo).
+    //   subtitle  = texto pequeño debajo del título (progreso, etc.).
+    // Ej: mostrarLoader('Bienvenido a nuestro catálogo', 'Leyendo datos…');
+    //     mostrarLoader('Generando catálogo en PDF', '45%');
+    function mostrarLoader(title, subtitle){
+      const loader=document.getElementById('loader');
+      const titleEl=document.getElementById('loader-text');
+      const subtitleEl=document.getElementById('loader-subtitle');
+      if(loader) loader.style.display='flex';
+      // Si solo se pasa un argumento, asumimos que es el título y dejamos
+      // el subtítulo con el mensaje por defecto (compatibilidad con
+      // llamadas antiguas mostrarLoader('algo')).
+      if(title && !subtitle && /Generando PDF\s*\(/.test(title)){
+        // Caso especial: llamada desde generarPDF con "(N/M)" → es el progreso.
+        if(titleEl) titleEl.textContent='Generando catálogo en PDF';
+        if(subtitleEl) subtitleEl.textContent=title;
+      }else if(title && !subtitle){
+        // Llamada simple mostrarLoader('texto') → texto como título, subtítulo por defecto.
+        if(titleEl) titleEl.textContent=title;
+        if(subtitleEl) subtitleEl.textContent='Esto puede tardar unos segundos…';
+      }else{
+        // Llamada con título + subtítulo explícitos.
+        if(titleEl) titleEl.textContent=title || 'Cargando…';
+        if(subtitleEl) subtitleEl.textContent=subtitle || '';
+      }
+    }
+    function ocultarLoader(){document.getElementById('loader').style.display='none';}
+  </script>
+</body>
+</html>
